@@ -175,6 +175,7 @@ def abstract2ids(abstract_words, vocab, article_oovs):
             ids.append(i)
     return ids
 
+
 def abstract2ids_new(abstract_words, vocab, article_oovs):
     ids = []
     unk_id = vocab.__getitem__(UNKNOWN_TOKEN)
@@ -206,6 +207,29 @@ def outputids2words(id_list, vocab, article_oovs):
             try:
                 w = article_oovs[article_oov_idx]
             except ValueError as e:  # i doesn't correspond to an article oov
+                raise ValueError(
+                    "Error: model produced word ID %i which corresponds to article OOV %i but this example only has %i article OOVs"
+                    % (i, article_oov_idx, len(article_oovs))
+                )
+        words.append(w)
+    return words
+
+
+def outputids2words_new(id_list, vocab, article_oovs):
+    words = []
+    for i in id_list:
+        try:
+            w = vocab.lookup_token(i)  # might be [UNK]
+        except Exception as e:  # w is OOV
+            assert (
+                article_oovs is not None
+            ), "Error: model produced a word ID that isn't in the vocabulary. This should not happen in baseline (no pointer-generator) mode"
+            article_oov_idx = i - vocab.__len__()
+            try:
+                w = article_oovs[
+                    article_oov_idx % len(article_oovs)
+                ]  # note that we select one of the OOV terms
+            except Exception as e:  # i doesn't correspond to an article oov
                 raise ValueError(
                     "Error: model produced word ID %i which corresponds to article OOV %i but this example only has %i article OOVs"
                     % (i, article_oov_idx, len(article_oovs))
