@@ -67,7 +67,15 @@ We only report the score in our training environment.
 | rouge-2 | 0.2214 | 0.2535 | 0.2306
 | rouge-l | 0.4007 | 0.4596 | 0.4186
 
+* Reinforcement learning on test set
 
+|  | r | p | f | 
+| :-----| ----: | :----: |:----: |
+| rouge-1 | 0.4308 | 0.4856 | 0.4466
+| rouge-2 | 0.2284 | 0.2562 | 0.2359
+| rouge-l | 0.4111 | 0.4633 | 0.4262
+
+Note that I can not make sure the improvement is caused by RL, maybe we should train more time when we use MLE. 
 ## Pytorch lighting Version
 
 

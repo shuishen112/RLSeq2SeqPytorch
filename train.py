@@ -17,7 +17,8 @@ from torch.distributions import Categorical
 from rouge import Rouge
 from numpy import random
 import argparse
-import wandb
+
+# import wandb
 
 random.seed(123)
 T.manual_seed(123)
@@ -393,7 +394,7 @@ class Train(object):
                     "%.4f" % r_avg,
                 )
                 count = mle_total = r_total = 0
-                wandb.log({"loss": mle_avg})
+                # wandb.log({"loss": mle_avg})
 
             if iter % 5000 == 0:
                 self.save_model(iter)
@@ -410,11 +411,11 @@ if __name__ == "__main__":
     opt.rl_weight = 1 - opt.mle_weight
 
     # init wandb log
-    wandb.init(
-        project="rl_sequence-to-sequence",
-        # notes="sequence to sequence baseline",
-        # config=config,
-    )
+    # wandb.init(
+    #     project="rl_sequence-to-sequence",
+    #     # notes="sequence to sequence baseline",
+    #     # config=config,
+    # )
     print(
         "Training mle: %s, Training rl: %s, mle weight: %.2f, rl weight: %.2f"
         % (opt.train_mle, opt.train_rl, opt.mle_weight, opt.rl_weight)
@@ -426,4 +427,4 @@ if __name__ == "__main__":
     train_processor = Train(opt)
     train_processor.trainIters()
 
-    wandb.finish()
+    # wandb.finish()
