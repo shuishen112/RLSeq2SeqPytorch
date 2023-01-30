@@ -1,7 +1,7 @@
 # %%
 from torch.utils.data import Dataset
 from transformers import TrainingArguments, Trainer
-
+from tqdm import tqdm
 # %%
 # load dataset
 import pandas as pd
@@ -13,12 +13,7 @@ from transformers import GPT2Tokenizer, GPT2LMHeadModel
 modelname = "gpt2"
 
 # load tokenizer
-tokenizer = GPT2Tokenizer.from_pretrained(
-    modelname,
-    bos_token="<|startoftext|>",
-    eos_token="<|endoftext|>",
-    pad_token="<|pad|>",
-)
+tokenizer = GPT2Tokenizer.from_pretrained(modelname, pad_token="<|pad|>")
 
 tokenizer.pad_token_id = tokenizer.eos_token_id
 
@@ -29,6 +24,10 @@ tokenizer.save_pretrained("./models/tokenizer/")
 # get the dataset
 import pandas as pd
 import torch
+
+# same as the bart we used 20 90% query
+def trunction_query(row):
+    return " ".join(row["source"].split()[:20])
 
 
 class S2Sdataset(Dataset):
@@ -42,14 +41,9 @@ class S2Sdataset(Dataset):
         df_target = pd.read_csv(
             f"scifact/{data_type}.target", sep="\t", names=["target"]
         )
+        df_source["source"] = df_source.apply(trunction_query, axis=1)
+        df_merge = df_source["source"] + "<|pad|>" + df_target["target"]
 
-        df_merge = (
-            "<|startoftext|>Source:"
-            + df_source["source"]
-            + "<|pad|>Target:"
-            + df_target["target"]
-            + "<|endoftext|>"
-        )
         for item in df_merge:
             # tokenize
             encodings_dict = tokenizer(
@@ -75,18 +69,19 @@ training_args = TrainingArguments(
     output_dir="results",
     num_train_epochs=100,
     logging_steps=10,
-    load_best_model_at_end=True,
+    load_best_model_at_end=False,
     save_strategy="epoch",
     evaluation_strategy="epoch",
-    per_device_train_batch_size=20,
-    per_device_eval_batch_size=20,
+    per_device_train_batch_size=64,
+    per_device_eval_batch_size=64,
     warmup_steps=100,
     weight_decay=0.01,
     logging_dir="logs",
+    save_total_limit=1,  # only save one file
 )
 
 # %%
-model = GPT2LMHeadModel.from_pretrained("results/checkpoint-3700").cuda()
+model = GPT2LMHeadModel.from_pretrained("gpt2").cuda()
 model.resize_token_embeddings(len(tokenizer))
 
 # %%
@@ -101,28 +96,38 @@ model.resize_token_embeddings(len(tokenizer))
 #         "attention_mask": torch.stack([f[1] for f in data]),
 #         "labels": torch.stack([f[0] for f in data]),
 #     },
-# ).valid()
+# ).train()
 
 # %%
 # Test
 
+
 fout = open("scifact/gpt_predict.txt", "w")
 
 
+
+
 def test():
+    model = GPT2LMHeadModel.from_pretrained("results/checkpoint-1200").cuda()
+    model.resize_token_embeddings(len(tokenizer))
     model.eval()
 
     df = pd.read_csv("scifact/test.source", names=["source"], sep="\t")
-    for text in df["source"].to_list():
-        prompt = f"<|startoftext|>Source: {text}\nTarget:"
-        generated = tokenizer(f"{prompt}", return_tensors="pt").input_ids.cuda()
+    for text in tqdm(df["source"].to_list()):
+        prompt = text
+
+        # note that we only want to make the parameters same as the bart, so we set the max_length of query to 20.
+
+        generated = tokenizer(
+            f"{prompt}", return_tensors="pt", max_length=20
+        ).input_ids.cuda()
 
         # perform prediction
         sample_outputs = model.generate(
             generated,
             do_sample=False,
             top_k=50,
-            max_length=70,
+            max_length=40,
             top_p=0.90,
             temperature=0,
             num_return_sequences=0,
@@ -131,11 +136,10 @@ def test():
         # decode the predicted tokens into texts
         predicted_text = tokenizer.decode(sample_outputs[0], skip_special_tokens=True)
         predicted_text = predicted_text.strip().replace("\n", "")
-        target = predicted_text.split("Target:")[-1]
-
+        target = " ".join(predicted_text.split("<|pad|>")[-1].split(" ")[:12])
         fout.write(target + "\n")
         fout.flush()
         # print("predicted_text", predicted_text)
 
 
-# test()
+test()

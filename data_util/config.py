@@ -12,7 +12,7 @@ max_enc_steps = 55  # 99% of the articles are within length 55
 max_dec_steps = 15  # 99% of the titles are within length 15
 beam_size = 2
 min_dec_steps = 3
-vocab_size = 20000
+vocab_size = 50000
 
 lr = 0.001
 rand_unif_init_mag = 0.02
