@@ -114,11 +114,18 @@ class S2SDataset(Dataset):
         self.df_abstract = pd.read_csv(
             f"scifact/{type}.target", sep="\t", names=["abstract"]
         )
+        # self.df_article = pd.read_csv(
+        #     f"data/unfinished/{type}.art.shuf1000.txt", sep="\t", names=["article"]
+        # )
+
+        # self.df_abstract = pd.read_csv(
+        #     f"data/unfinished/{type}.abs.shuf1000.txt", sep="\t", names=["abstract"]
+        # )
 
         self.vocab = vocab
 
     def __len__(self):
-        return len(self.df_abstract)
+        return len(self.df_article)
 
     def __getitem__(self, index):
         article = self.df_article["article"].iloc[index]
@@ -213,8 +220,16 @@ class S2SDataModule(pl.LightningDataModule):
     def __init__(self, data_dir: str = "path") -> None:
         super().__init__()
 
+        # df_article = pd.read_csv(
+        #     "data/unfinished/train.art.shuf1000.txt", sep="\t", names=["article"]
+        # )
+        # df_abstract = pd.read_csv(
+        #     "data/unfinished/train.abs.shuf1000.txt", sep="\t", names=["abstract"]
+        # )
+
         df_article = pd.read_csv("scifact/train.source", sep="\t", names=["article"])
         df_abstract = pd.read_csv("scifact/train.target", sep="\t", names=["abstract"])
+
         self.batch_size = config.batch_size
         # PAD_TOKEN = "[PAD]"  # This has a vocab id, which is used to pad the encoder input, decoder input and target sequence
         # UNKNOWN_TOKEN = "[UNK]"  # This has a vocab id, which is used to represent out-of-vocabulary words
@@ -235,6 +250,9 @@ class S2SDataModule(pl.LightningDataModule):
         self.train_dataset = S2SDataset(self.vocab, "train")
         self.valid_dataset = S2SDataset(self.vocab, "val")
         self.test_dataset = S2SDataset(self.vocab, "test")
+
+        # self.train_dataset = S2SDataset(self.vocab, "train")
+        # self.valid_dataset = S2SDataset(self.vocab, "valid")
 
     def collate_batch(self, batch):
         return Batch(batch, self.vocab, len(batch))
@@ -257,5 +275,5 @@ class S2SDataModule(pl.LightningDataModule):
         return DataLoader(
             self.test_dataset,
             collate_fn=self.collate_batch,
-            batch_size=self.batch_size,
+            batch_size=50,
         )
