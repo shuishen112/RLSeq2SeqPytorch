@@ -9,6 +9,9 @@ from model import Encoder, Decoder, Model
 from beam_search import beam_search, beam_search_pl
 from train_util import get_enc_data, get_cuda, get_dec_data
 from rouge import Rouge
+import yaml
+
+yaml_args = yaml.load(open("yaml_config/nq_lstm_answer.yaml"), Loader=yaml.FullLoader)
 
 
 class pl_model(pl.LightningModule):
@@ -143,7 +146,7 @@ class pl_model(pl.LightningModule):
     def print_original_predicted(self, decoded_sents, ref_sents, article_sents):
         filename = "test_debug" + ".txt"
 
-        with open(os.path.join("scifact", filename), "w") as f:
+        with open(os.path.join(yaml_args["save_model_path"], filename), "w") as f:
             for i in range(len(decoded_sents)):
                 f.write("article: " + article_sents[i] + "\n")
                 f.write("ref: " + ref_sents[i] + "\n")
@@ -207,7 +210,7 @@ class pl_model(pl.LightningModule):
 
         scores = rouge.get_scores(decoded_sents, ref_sents, avg=True)
         rouge_l = torch.tensor(scores["rouge-l"]["f"])
-        print("rouge-l", scores["rouge-l"]["f"])
+        # print("rouge-l", scores["rouge-l"]["f"])
         return {"rouge-l": rouge_l}
 
         # self.log("rouge_l", rouge_l, on_step=False, prog_bar=True, logger=True)
@@ -263,7 +266,7 @@ class pl_model(pl.LightningModule):
 
     def test_epoch_end(self, outputs):
         # pred_l = []
-        fout = open("scifact/test_generated_lstm.txt", "w")
+        fout = open(f"{yaml_args['data_dir']}/test_generated_lstm.txt", "w")
         for output_batch in outputs:
             # pred_l.extend(output_batch["generated_terms"])
             for generated_terms in output_batch["generated_terms"]:
@@ -272,7 +275,7 @@ class pl_model(pl.LightningModule):
 
     def validation_epoch_end(self, outputs):
         avg_rouge_l = torch.stack([x["rouge-l"] for x in outputs]).mean()
-        print(avg_rouge_l)
+        print("avg_rouge_l", avg_rouge_l)
         self.log("val_rouge", avg_rouge_l, on_epoch=True)
 
     def configure_optimizers(self):

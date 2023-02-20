@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader
 
 from torchtext.data.utils import get_tokenizer
 from torchtext.vocab import build_vocab_from_iterator
+from data_util.data import Vocab
 
 tokenizer = get_tokenizer("basic_english")
 
@@ -22,10 +23,13 @@ def yield_tokens(df_list):
 
 
 class Example(object):
-    def __init__(self, article, abstract_sentences, vocab):
+    def __init__(self, article, abstract_sentences, vocab, qid=None):
         # Get ids of special tokens
         start_decoding = vocab.__getitem__(data.START_DECODING)
         stop_decoding = vocab.__getitem__(data.STOP_DECODING)
+        self.qid = qid
+        if self.qid:
+            self.qid = str(qid)
 
         # Process the article
         article_words = article.split()
@@ -101,6 +105,8 @@ class S2SDataset(Dataset):
         self,
         vocab,
         type="train",
+        data_path="",
+        train_type="ml",
     ):
         """_summary_
 
@@ -108,12 +114,21 @@ class S2SDataset(Dataset):
             vocab (_type_): vocab
             type (_type_): train, test, valid
         """
-        self.df_article = pd.read_csv(
-            f"scifact/{type}.source", sep="\t", names=["article"]
-        )
-        self.df_abstract = pd.read_csv(
-            f"scifact/{type}.target", sep="\t", names=["abstract"]
-        )
+        self.train_type = train_type
+        if train_type == "ml":
+            self.df_article = pd.read_csv(
+                f"{data_path}/{type}.source", sep="\t", names=["article"]
+            )
+            self.df_abstract = pd.read_csv(
+                f"{data_path}/{type}.target", sep="\t", names=["abstract"]
+            )
+        elif train_type == "rl":
+            self.df_article = pd.read_csv(
+                f"{data_path}/{type}.source_rl", sep="\t", names=["qid", "article"]
+            )
+            self.df_abstract = pd.read_csv(
+                f"{data_path}/{type}.target_rl", sep="\t", names=["qid", "abstract"]
+            )
         # self.df_article = pd.read_csv(
         #     f"data/unfinished/{type}.art.shuf1000.txt", sep="\t", names=["article"]
         # )
@@ -128,9 +143,15 @@ class S2SDataset(Dataset):
         return len(self.df_article)
 
     def __getitem__(self, index):
-        article = self.df_article["article"].iloc[index]
-        abstract = self.df_abstract["abstract"].iloc[index]
-        ex = Example(article, [abstract], self.vocab)
+        if self.train_type == "ml":
+            article = self.df_article["article"].iloc[index]
+            abstract = self.df_abstract["abstract"].iloc[index]
+            ex = Example(article, [abstract], self.vocab)
+        elif self.train_type == "rl":
+            article = self.df_article["article"].iloc[index]
+            abstract = self.df_abstract["abstract"].iloc[index]
+            qid = self.df_article["qid"].iloc[index]
+            ex = Example(article, [abstract], self.vocab, qid)
         return ex
 
 
@@ -145,6 +166,11 @@ class Batch(object):
             example_list
         )  # initialize the input and targets for the decoder
         self.store_orig_strings(example_list)  # store the original strings
+
+        self.init_qids(example_list)
+
+    def init_qids(self, example_list):
+        self.qids = [item.qid for item in example_list]
 
     def init_encoder_seq(self, example_list):
         # Determine the maximum length of the encoder input sequence in this batch
@@ -217,18 +243,15 @@ class Batch(object):
 
 
 class S2SDataModule(pl.LightningDataModule):
-    def __init__(self, data_dir: str = "path") -> None:
+    def __init__(self, data_dir: str = "path", train_type: str = "ml") -> None:
         super().__init__()
 
-        # df_article = pd.read_csv(
-        #     "data/unfinished/train.art.shuf1000.txt", sep="\t", names=["article"]
-        # )
-        # df_abstract = pd.read_csv(
-        #     "data/unfinished/train.abs.shuf1000.txt", sep="\t", names=["abstract"]
-        # )
-
-        df_article = pd.read_csv("scifact/train.source", sep="\t", names=["article"])
-        df_abstract = pd.read_csv("scifact/train.target", sep="\t", names=["abstract"])
+        df_article = pd.read_csv(
+            f"{data_dir}/train.source", sep="\t", names=["article"]
+        )
+        df_abstract = pd.read_csv(
+            f"{data_dir}/train.target", sep="\t", names=["abstract"]
+        )
 
         self.batch_size = config.batch_size
         # PAD_TOKEN = "[PAD]"  # This has a vocab id, which is used to pad the encoder input, decoder input and target sequence
@@ -237,19 +260,23 @@ class S2SDataModule(pl.LightningDataModule):
         # STOP_DECODING = "[STOP]"  # This has a vocab id, which is used at the end of untruncated target sequences
 
         # build the vocabulary
-        self.vocab = build_vocab_from_iterator(
-            yield_tokens(
-                [df_abstract["abstract"].to_list(), df_article["article"].to_list()]
-            ),
-            specials=["[UNK]", "[PAD]", "[START]", "[STOP]"],
-        )
-        self.vocab.set_default_index(self.vocab["[UNK]"])
+        self.vocab = Vocab(config.vocab_path, config.vocab_size)
+        self.start_id = self.vocab.word2id(data.START_DECODING)
+        self.end_id = self.vocab.word2id(data.STOP_DECODING)
+        self.pad_id = self.vocab.word2id(data.PAD_TOKEN)
+        self.unk_id = self.vocab.word2id(data.UNKNOWN_TOKEN)
 
         # get the dataset
 
-        self.train_dataset = S2SDataset(self.vocab, "train")
-        self.valid_dataset = S2SDataset(self.vocab, "val")
-        self.test_dataset = S2SDataset(self.vocab, "test")
+        self.train_dataset = S2SDataset(
+            self.vocab, "train", data_path=data_dir, train_type=train_type
+        )
+        self.valid_dataset = S2SDataset(
+            self.vocab, "val", data_path=data_dir, train_type=train_type
+        )
+        self.test_dataset = S2SDataset(
+            self.vocab, "test", data_path=data_dir, train_type=train_type
+        )
 
         # self.train_dataset = S2SDataset(self.vocab, "train")
         # self.valid_dataset = S2SDataset(self.vocab, "valid")

@@ -1,0 +1,11 @@
+data_path: "data/nq-title"
+modelname: "gpt2"
+predict_data_path: data/nq-title/gpt_predict.txt
+output_dir: "nq_title_results"
+input_length: 20
+target_length: 40
+tokenizer_savedir: "./nq_answer_models/tokenizer/"
+epoch: 100
+max_sequenge_length: 60
+save_model: "nq_title_results/checkpoint-53200"
+ 

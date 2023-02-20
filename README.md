@@ -1,84 +1,135 @@
-# Sequence to Sequence using Reinforcement Learning
-Combining [A Deep Reinforced Model for Abstractive Summarization](https://arxiv.org/pdf/1705.04304.pdf) and [Get To The Point: Summarization with Pointer-Generator Networks](https://arxiv.org/pdf/1704.04368.pdf)
-
-> The code is based: https://github.com/rohithreddy024/Text-Summarizer-Pytorch. 
-
-We fixed some issues from the original version and add the pytorchlightning version. 
-
-## Model Description
-* LSTM based Sequence-to-Sequence model for Abstractive Summarization
-* Pointer mechanism for handling Out of Vocabulary (OOV) words [See et al. (2017)](https://arxiv.org/pdf/1704.04368.pdf)
-* Intra-temporal and Intra-decoder attention for handling repeated words [Paulus et al. (2018)](https://arxiv.org/pdf/1705.04304.pdf)
-* Self-critic policy gradient training along with MLE training [Paulus et al. (2018)](https://arxiv.org/pdf/1705.04304.pdf)
-
-## Data
-* Download train and valid pairs (article, title) of OpenNMT provided Gigaword dataset from [here](https://github.com/harvardnlp/sent-summary)
-* Copy files ```train.article.txt```, ```train.title.txt```, ```valid.article.filter.txt```and ```valid.title.filter.txt``` to ```data/unfinished``` folder
-* Files are already preprcessed
-
-The previous version use some tricks, so we have to convert the dataformat to .bin files. 
-
-### [original version] Creating ```.bin``` files and vocab file
-* The model accepts data in the form of ```.bin``` files.
-* To convert ```.txt``` file into ```.bin``` file and chunk them further, run (requires Python 2 & Tensorflow):
-```
-python make_data_files.py
-```
-* You will find the data in ```data/chunked``` folder and vocab file in ```data``` folder
-
-### [original version] Training
-* As suggested in [Paulus et al. (2018)](https://arxiv.org/pdf/1705.04304.pdf), first pretrain the seq-to-seq model using MLE (with Python 3):
-```
-python train.py --train_mle=yes --train_rl=no --mle_weight=1.0
-```
-* Next, find the best saved model on validation data by running (with Python 3):
-```
-python eval.py --task=validate --start_from=0005000.tar
-```
-* After finding the best model (lets say ```0100000.tar```) with high rouge-l f score, load it and run (with Python 3):
-```
-python train.py --train_mle=yes --train_rl=yes --mle_weight=0.25 --load_model=0100000.tar --new_lr=0.0001
-```
-for MLE + RL training (or)
-```
-python train.py --train_mle=no --train_rl=yes --mle_weight=0.0 --load_model=0100000.tar --new_lr=0.0001
-```
-for RL training
-
-### Validation
-* To perform validation of RL training, run (with Python 3):
-```
-python eval.py --task=validate --start_from=0100000.tar
-```
-### Testing
-* After finding the best model of RL training (lets say ```0025000.tar```), evaluate it on test data & get all rouge metrics by running (with Python 3):
-```
-python eval.py --task=test --load_model=0025000.tar
-```
-
-### （Our）Results
-
-We only report the score in our training environment. 
-* Rouge scores obtained by using best MLE trained model on test set:  
-
-|  | r | p | f | 
-| :-----| ----: | :----: |:----: |
-| rouge-1 | 0.4197 | 0.4816 | 0.4384
-| rouge-2 | 0.2214 | 0.2535 | 0.2306
-| rouge-l | 0.4007 | 0.4596 | 0.4186
-
-* Reinforcement learning on test set
-
-|  | r | p | f | 
-| :-----| ----: | :----: |:----: |
-| rouge-1 | 0.4308 | 0.4856 | 0.4466
-| rouge-2 | 0.2284 | 0.2562 | 0.2359
-| rouge-l | 0.4111 | 0.4633 | 0.4262
-
-Note that I can not make sure the improvement is caused by RL, maybe we should train more time when we use MLE. 
-## Pytorch lighting Version
+<!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
+<a name="readme-top"></a>
+<!--
+*** Thanks for checking out the Best-README-Template. If you have a suggestion
+*** that would make this better, please fork the repo and create a pull request
+*** or simply open an issue with the tag "enhancement".
+*** Don't forget to give the project a star!
+*** Thanks again! Now go create something AMAZING! :D
+-->
 
 
-## References
-* [pytorch implementation of "Get To The Point: Summarization with Pointer-Generator Networks"](https://github.com/atulkum/pointer_summarizer)
-* [https://github.com/rohithreddy024/Text-Summarizer-Pytorch](https://github.com/rohithreddy024/Text-Summarizer-Pytorch)
+
+<!-- PROJECT SHIELDS -->
+<!--
+*** I'm using markdown "reference style" links for readability.
+*** Reference links are enclosed in brackets [ ] instead of parentheses ( ).
+*** See the bottom of this document for the declaration of the reference variables
+*** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
+*** https://www.markdownguide.org/basic-syntax/#reference-style-links
+-->
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![MIT License][license-shield]][license-url]
+[![LinkedIn][linkedin-shield]][linkedin-url]
+
+
+
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+      <ul>
+        <li><a href="#built-with">Built With</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#acknowledgments">Acknowledgments</a></li>
+  </ol>
+</details>
+
+
+<!-- ABOUT THE PROJECT -->
+## About The Project
+
+
+Here's a blank template to get started: To avoid retyping too much info. Do a search and replace with your text editor for the following: `github_username`, `repo_name`, `twitter_handle`, `linkedin_username`, `email_client`, `email`, `project_title`, `project_description`
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- ABOUT THE PROJECT -->
+## About The Project
+
+![image/RLHF_QRGPT.png](image/RLHF_QRGPT.png)
+
+
+This is a pytorch implementation of the paper: QRGPT: A Query Reformulation Approach using GPT with
+Reinforcement Learning. The most of the code in LSTM-RL is from https://github.com/rohithreddy024/Text-Summarizer-Pytorch. 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+### Built With
+
+[![made-with-pytorch](https://img.shields.io/badge/Made%20with-PyTorch-orange)](https://pytorch.org/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- GETTING STARTED -->
+## Running Enviroment
+
+- python==3.8.6
+- pytorch_lightning==1.8.4
+- torchdata==0.5.0
+- torchtext==0.14.0
+- transformer==4.25.1
+- torch==1.13.0+cu116
+
+
+### Run
+
+> python train_pl.py
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+[contributors-shield]: https://img.shields.io/github/contributors/github_username/repo_name.svg?style=for-the-badge
+[contributors-url]: https://github.com/github_username/repo_name/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/github_username/repo_name.svg?style=for-the-badge
+[forks-url]: https://github.com/github_username/repo_name/network/members
+[stars-shield]: https://img.shields.io/github/stars/github_username/repo_name.svg?style=for-the-badge
+[stars-url]: https://github.com/github_username/repo_name/stargazers
+[issues-shield]: https://img.shields.io/github/issues/github_username/repo_name.svg?style=for-the-badge
+[issues-url]: https://github.com/github_username/repo_name/issues
+[license-shield]: https://img.shields.io/github/license/github_username/repo_name.svg?style=for-the-badge
+[license-url]: https://github.com/github_username/repo_name/blob/master/LICENSE.txt
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
+[linkedin-url]: https://linkedin.com/in/linkedin_username
+[product-screenshot]: images/screenshot.png
+[Next.js]: https://img.shields.io/badge/next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white
+[Next-url]: https://nextjs.org/
+[React.js]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
+[React-url]: https://reactjs.org/
+[Vue.js]: https://img.shields.io/badge/Vue.js-35495E?style=for-the-badge&logo=vuedotjs&logoColor=4FC08D
+[Vue-url]: https://vuejs.org/
+[Angular.io]: https://img.shields.io/badge/Angular-DD0031?style=for-the-badge&logo=angular&logoColor=white
+[Angular-url]: https://angular.io/
+[Svelte.dev]: https://img.shields.io/badge/Svelte-4A4A55?style=for-the-badge&logo=svelte&logoColor=FF3E00
+[Svelte-url]: https://svelte.dev/
+[Laravel.com]: https://img.shields.io/badge/Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white
+[Laravel-url]: https://laravel.com
+[Bootstrap.com]: https://img.shields.io/badge/Bootstrap-563D7C?style=for-the-badge&logo=bootstrap&logoColor=white
+[Bootstrap-url]: https://getbootstrap.com
+[JQuery.com]: https://img.shields.io/badge/jQuery-0769AD?style=for-the-badge&logo=jquery&logoColor=white
+[JQuery-url]: https://jquery.com 

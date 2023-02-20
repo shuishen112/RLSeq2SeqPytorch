@@ -1,0 +1,10 @@
+data_dir: "scifact"
+train_type: "rl"
+# ckpt_path: "lstm_scifact_sft_best/lstm/epoch=97-val_rouge=0.08.ckpt"
+ckpt_path: lstm_scifact_map/save_model/epoch=98-val_reward=0.6352.ckpt
+save_model_path: lstm_scifact_map
+monitor: val_reward
+mode: max
+max_epochs: 150
+filename: "{epoch}-{val_reward:.4f}"
+reward: map
