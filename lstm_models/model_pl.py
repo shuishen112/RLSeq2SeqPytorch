@@ -11,7 +11,7 @@ from train_util import get_enc_data, get_cuda, get_dec_data
 from rouge import Rouge
 import yaml
 
-yaml_args = yaml.load(open("yaml_config/nq_lstm_answer.yaml"), Loader=yaml.FullLoader)
+yaml_args = yaml.load(open("yaml_config/nq_lstm.yaml"), Loader=yaml.FullLoader)
 
 
 class pl_model(pl.LightningModule):

@@ -14,7 +14,7 @@ from query_predictor import QueryReward
 import numpy as np
 import yaml
 
-yaml_args = yaml.load(open("yaml_config/scifact_lstm.yaml"), Loader=yaml.FullLoader)
+yaml_args = yaml.load(open("yaml_config/nq_lstm.yaml"), Loader=yaml.FullLoader)
 
 reward_evaluation = yaml_args["reward"]
 qw = QueryReward(reward_evaluation, reward_type="post-retrieval")
@@ -251,7 +251,7 @@ class ReinforcementPostModel(pl.LightningModule):
     def print_original_predicted(self, decoded_sents, ref_sents, article_sents):
         filename = "test_debug" + ".txt"
 
-        with open(os.path.join("scifact", filename), "w") as f:
+        with open(os.path.join(yaml_args["data_dir"], filename), "w") as f:
             for i in range(len(decoded_sents)):
                 f.write("article: " + article_sents[i] + "\n")
                 f.write("ref: " + ref_sents[i] + "\n")
@@ -316,6 +316,7 @@ class ReinforcementPostModel(pl.LightningModule):
         )
 
         sample_reward = get_cuda(T.FloatTensor(sample_reward))
+        print("get sample reward", sample_reward)
 
         baseline_reward = qw.get_reward_score(
             original_querys,
@@ -405,7 +406,12 @@ class ReinforcementPostModel(pl.LightningModule):
 
     def test_epoch_end(self, outputs):
         # pred_l = []
-        fout = open(f"scifact/scifact_rl_{reward_evaluation}.txt", "w")
+        fout = open(
+            "{}/{}_rl_{}.txt".format(
+                yaml_args["data_dir"], yaml_args["dataset"], yaml_args["reward"]
+            ),
+            "w",
+        )
         qids = []
         new_querys = []
 
@@ -416,16 +422,6 @@ class ReinforcementPostModel(pl.LightningModule):
             for generated_terms in output_batch["generated_terms"]:
                 fout.write(generated_terms + "\n")
                 fout.flush()
-
-        baseline_reward = qw.get_reward_score(
-            new_querys,
-            None,
-            qids=qids,
-            source_text=None,
-            data_type="test",
-        )
-
-        print("test reward", np.mean(baseline_reward))
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr)

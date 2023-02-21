@@ -125,19 +125,24 @@ class S2SDataset(Dataset):
                 f"{data_path}/{type}.target", sep="\t", names=["abstract"]
             )
         elif train_type == "rl":
-            self.df_article = pd.read_csv(
-                f"{data_path}/{type}.source_rl", sep="\t", names=["qid", "article"]
-            )
-            self.df_abstract = pd.read_csv(
-                f"{data_path}/{type}.target_rl", sep="\t", names=["qid", "abstract"]
-            )
-        # self.df_article = pd.read_csv(
-        #     f"data/unfinished/{type}.art.shuf1000.txt", sep="\t", names=["article"]
-        # )
 
-        # self.df_abstract = pd.read_csv(
-        #     f"data/unfinished/{type}.abs.shuf1000.txt", sep="\t", names=["abstract"]
-        # )
+            # self.df_article = pd.read_csv(
+            #     f"{data_path}/{type}.source_rl", sep="\t", names=["qid", "article"]
+            # )
+            # self.df_abstract = pd.read_csv(
+            #     f"{data_path}/{type}.target_rl", sep="\t", names=["qid", "abstract"]
+            # )
+            self.df_article = pd.read_csv(
+                f"{data_path}/{type}.source",
+                sep=",",
+            )
+            self.df_article = self.df_article.rename(columns={"query": "article"})
+
+            self.df_abstract = pd.read_csv(
+                f"{data_path}/{type}.target",
+                sep=",",
+            )
+            self.df_abstract = self.df_abstract.rename(columns={"query": "abstract"})
 
         self.vocab = vocab
 

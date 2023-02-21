@@ -4,7 +4,7 @@ from pytorch_lightning import Trainer
 from lstm_models.model_pl import pl_model
 from lstm_models.data_loader_pl import S2SDataModule
 
-# from lstm_models.model_plrl import ReinforcementModel
+from lstm_models.model_plrl import ReinforcementModel
 from lstm_models.model_plrl_post_reward import ReinforcementPostModel
 from pathlib import Path
 from pytorch_lightning.loggers import WandbLogger
@@ -12,7 +12,7 @@ from query_predictor import QueryReward
 import yaml
 
 
-yaml_args = yaml.load(open("yaml_config/nq_lstm_answer.yaml"), Loader=yaml.FullLoader)
+yaml_args = yaml.load(open("yaml_config/nq_lstm.yaml"), Loader=yaml.FullLoader)
 # wandb_logger = WandbLogger(
 #     project="SIGIR2023",
 #     name="lstm-nq-answer",
@@ -24,9 +24,9 @@ datamodule = S2SDataModule(
 )
 print(len(datamodule.vocab))
 
-model = pl_model(datamodule.vocab)
+# model = pl_model(datamodule.vocab)
 # model = ReinforcementModel(datamodule.vocab)
-# model = ReinforcementPostModel(datamodule.vocab)
+model = ReinforcementPostModel(datamodule.vocab)
 
 filename = yaml_args["filename"]
 ckpt_path = yaml_args["ckpt_path"]
@@ -39,7 +39,7 @@ checkpoint_callback = pl.callbacks.ModelCheckpoint(
     mode=yaml_args["mode"],
     save_top_k=1,
     every_n_epochs=None,
-    # every_n_train_steps=100,
+    every_n_train_steps=10,
     # save_last=True,
 )
 
@@ -50,8 +50,11 @@ trainer = Trainer(
     max_epochs=yaml_args["max_epochs"],
     resume_from_checkpoint=ckpt_path,
     logger=None,
+    # fast_dev_run=True,
+    limit_train_batches=1,
+    limit_val_batches=1,
 )
-trainer.fit(model, datamodule, ckpt_path=ckpt_path)
+# trainer.fit(model, datamodule, ckpt_path=ckpt_path)
 trainer.test(
     model,
     dataloaders=datamodule.test_dataloader(),

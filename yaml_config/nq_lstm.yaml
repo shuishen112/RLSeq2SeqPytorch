@@ -1,0 +1,18 @@
+dataset: nq
+# data_dir: "data/nq-sentence"
+data_dir: data/natural-questions
+train_type: "rl"
+# ckpt_path: "lstm_scifact_sft_best/lstm/epoch=97-val_rouge=0.08.ckpt"
+# ckpt_path: lstm_scifact_map/save_model/epoch=98-val_reward=0.6352.ckpt
+# ckpt_path: lstm_nq_sentence_sft/save_model/epoch=28-val_rouge=0.1548.ckpt
+# ckpt_path: lstm_nq_answer_sft/save_model/epoch=13-val_rouge=0.0540.ckpt
+# ckpt_path: lstm_nq_title_sft/save_model/epoch=50-val_rouge=0.1314.ckpt
+# ckpt_path: 
+ckpt_path: lstm_nq_sentence_recall_20/save_model/epoch=30-val_reward=0.0000.ckpt
+save_model_path: lstm_nq_sentence_recall_20
+monitor: val_reward
+mode: max
+max_epochs: 100
+# filename: "{epoch}-{val_rouge:.4f}"
+filename: "{epoch}-{val_reward:.4f}"
+reward: recall_20

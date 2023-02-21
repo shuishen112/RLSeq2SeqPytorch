@@ -221,6 +221,7 @@ def outputids2words_new(id_list, vocab, article_oovs):
     for i in id_list:
         try:
             w = vocab.lookup_token(i)  # might be [UNK]
+            words.append(w)
         except Exception as e:  # w is OOV
             assert (
                 article_oovs is not None
@@ -231,11 +232,12 @@ def outputids2words_new(id_list, vocab, article_oovs):
                     article_oov_idx % len(article_oovs)
                 ]  # note that we select one of the OOV terms
             except Exception as e:  # i doesn't correspond to an article oov
-                raise ValueError(
-                    "Error: model produced word ID %i which corresponds to article OOV %i but this example only has %i article OOVs"
-                    % (i, article_oov_idx, len(article_oovs))
-                )
-        words.append(w)
+                # raise ValueError(
+                #     "Error: model produced word ID %i which corresponds to article OOV %i but this example only has %i article OOVs"
+                #     % (i, article_oov_idx, len(article_oovs))
+                # )
+                print("no in the article oov")
+        
     return words
 
 

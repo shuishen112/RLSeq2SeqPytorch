@@ -3,12 +3,15 @@ import pandas as pd
 import pickle
 import math
 import numpy as np
+import yaml
 from gensim.utils import tokenize as gensim_tokenize
 import pyterrier as pt
+from pyterrier.measures import *
 
 pt.init()
 # idf = pickle.load(open("notebook/idf.pickle", "rb"))
 # word_count = pickle.load(open("notebook/word_count.pickle", "rb"))
+yaml_args = yaml.load(open("yaml_config/nq_lstm.yaml"), Loader=yaml.FullLoader)
 
 scorer = rouge_scorer.RougeScorer(["rouge1", "rouge2", "rougeL"], use_stemmer=True)
 
@@ -76,7 +79,6 @@ def SumSCQ(query):
         return np.sum(seg_list)
 
 
-# 对query进行预处理
 def clean(row):
     text = row["query"].strip().lower()
     tokens = list(gensim_tokenize(text))
@@ -84,9 +86,8 @@ def clean(row):
     return text
 
 
-def get_retrieval_material():
+def get_retrieval_material_scifact():
 
-    # 检索
     index = pt.IndexFactory.of(
         "/projects/futhark1/data/wzm289/code/GAR/gar/indices/beir_scifact"
     )
@@ -96,41 +97,56 @@ def get_retrieval_material():
     train_qrel = train_dataset.get_qrels()
     querys = train_dataset.get_topics("text")
 
-    test_dataset = pt.get_dataset("irds:beir/scifact/test")
-    test_qrel = test_dataset.get_qrels()
-    # print(querys)
-    # print(querys.dtypes)
+    return bm25, train_qrel, train_qrel
+
+
+def get_retrieval_material_nq():
+    #
+    index = pt.IndexFactory.of(
+        "/projects/futhark1/data/wzm289/code/GAR/gar/indices/dpr-w100"
+    )
+    bm25 = pt.BatchRetrieve(index, wmodel="BM25")
+
+    # dataset.get_topics("text").to_csv("datasets/natural-questions/val.source", index=None)
+    print(index.getCollectionStatistics().toString())
+    querys = pd.read_csv("data/natural-questions/train.source", dtype={"qid": "str"})
+    querys = querys.astype({"qid": "str"})
+    train_qrels = pd.read_csv(
+        "data/natural-questions/train_qrels.txt",
+        dtype={"qid": "str", "label": "int64", "docno": "str"},
+    )
+    # train_qrels = train_qrels.astype({"qid": "str", "label": "int64", "docno": "str"})
+    dev_qrels = pd.read_csv("data/natural-questions/dev_qrels.txt")
+
     # result = pt.Experiment(
     #     [bm25],
-    #     querys,
-    #     train_qrel,
-    #     eval_metrics=["recall_100"],
+    #     querys[:10],
+    #     train_qrels,
+    #     ["recall_20", "recall_100"],
     #     verbose=True,
+    #     batch_size=100,
     # )
-    # print(result)
 
-    return bm25, train_qrel, train_qrel, test_qrel
+    return bm25, train_qrels, dev_qrels
 
 
 class QueryReward:
     def __init__(self, reward_name, reward_type="pre-retrieval"):
         self.reward_name = reward_name
         self.reward_type = reward_type
-        if self.reward_type == "post-retrieval":
-            (
-                self.bm25,
-                self.train_qrel,
-                self.val_qrel,
-                self.test_qrel,
-            ) = get_retrieval_material()
+        # if self.reward_type == "post-retrieval":
+        if yaml_args["dataset"] == "nq":
+            self.bm25, self.train_qrel, self.val_qrel = get_retrieval_material_nq()
+        elif yaml_args["dataset"] == "scifact":
+            self.bm25, self.train_qrel, self.val_qrel = get_retrieval_material_scifact()
+        else:
+            print("no dataset")
 
     def get_metric_reward(self, qids, preds, data_type, reward_name="ndcg_cut_10"):
         if data_type == "train":
             qrel_data = self.train_qrel
         elif data_type == "val":
             qrel_data = self.val_qrel
-        elif data_type == "test":
-            qrel_data = self.test_qrel
 
         df_result = pd.DataFrame({"qid": qids, "query": preds})
         df_result = df_result.astype({"qid": object})
