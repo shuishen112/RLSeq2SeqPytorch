@@ -25,8 +25,8 @@ def yield_tokens(df_list):
 class Example(object):
     def __init__(self, article, abstract_sentences, vocab, qid=None):
         # Get ids of special tokens
-        start_decoding = vocab.__getitem__(data.START_DECODING)
-        stop_decoding = vocab.__getitem__(data.STOP_DECODING)
+        start_decoding = vocab.word2id(data.START_DECODING)
+        stop_decoding = vocab.word2id(data.STOP_DECODING)
         self.qid = qid
         if self.qid:
             self.qid = str(qid)
@@ -39,14 +39,14 @@ class Example(object):
             article_words
         )  # store the length after truncation but before padding
         self.enc_input = [
-            vocab.__getitem__(w) for w in article_words
+            vocab.word2id(w) for w in article_words
         ]  # list of word ids; OOVs are represented by the id for UNK token
 
         # Process the abstract
         abstract = " ".join(abstract_sentences)  # string
         abstract_words = abstract.split()  # list of strings
         abs_ids = [
-            vocab.__getitem__(w) for w in abstract_words
+            vocab.word2id(w) for w in abstract_words
         ]  # list of word ids; OOVs are represented by the id for UNK token
         # print(vocab.__len__())
         # print(abstract_words)
@@ -59,12 +59,12 @@ class Example(object):
 
         # If using pointer-generator mode, we need to store some extra info
         # Store a version of the enc_input where in-article OOVs are represented by their temporary OOV id; also store the in-article OOVs words themselves
-        self.enc_input_extend_vocab, self.article_oovs = data.article2ids_new(
+        self.enc_input_extend_vocab, self.article_oovs = data.article2ids(
             article_words, vocab
         )
 
         # Get a verison of the reference summary where in-article OOVs are represented by their temporary article OOV id
-        abs_ids_extend_vocab = data.abstract2ids_new(
+        abs_ids_extend_vocab = data.abstract2ids(
             abstract_words, vocab, self.article_oovs
         )
 
@@ -165,7 +165,7 @@ class S2SDataset(Dataset):
 class Batch(object):
     def __init__(self, example_list, vocab, batch_size):
         self.batch_size = batch_size
-        self.pad_id = vocab.__getitem__(
+        self.pad_id = vocab.word2id(
             data.PAD_TOKEN
         )  # id of the PAD token used to pad sequences
         self.init_encoder_seq(example_list)  # initialize the input to the encoder
@@ -250,7 +250,9 @@ class Batch(object):
 
 
 class S2SDataModule(pl.LightningDataModule):
-    def __init__(self, data_dir: str = "path", train_type: str = "ml") -> None:
+    def __init__(
+        self, data_dir: str = "path", train_type: str = "ml", yaml_args={}
+    ) -> None:
         super().__init__()
 
         df_article = pd.read_csv(
@@ -265,15 +267,15 @@ class S2SDataModule(pl.LightningDataModule):
         # UNKNOWN_TOKEN = "[UNK]"  # This has a vocab id, which is used to represent out-of-vocabulary words
         # START_DECODING = "[START]"  # This has a vocab id, which is used at the start of every decoder input sequence
         # STOP_DECODING = "[STOP]"  # This has a vocab id, which is used at the end of untruncated target sequences
-
+        self.vocab = Vocab(yaml_args["vocab_path"], yaml_args["VOCAB_SIZE"])
         # build the vocabulary
-        self.vocab = build_vocab_from_iterator(
-            yield_tokens(
-                [df_abstract["abstract"].to_list(), df_article["article"].to_list()]
-            ),
-            specials=["[UNK]", "[PAD]", "[START]", "[STOP]"],
-        )
-        self.vocab.set_default_index(self.vocab["[UNK]"])
+        # self.vocab = build_vocab_from_iterator(
+        #     yield_tokens(
+        #         [df_abstract["abstract"].to_list(), df_article["article"].to_list()]
+        #     ),
+        #     specials=["[UNK]", "[PAD]", "[START]", "[STOP]"],
+        # )
+        # self.vocab.set_default_index(self.vocab["[UNK]"])
 
         # get the dataset
 

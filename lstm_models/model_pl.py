@@ -11,7 +11,7 @@ from train_util import get_enc_data, get_cuda, get_dec_data
 from rouge import Rouge
 import yaml
 
-yaml_args = yaml.load(open("yaml_config/nq_lstm.yaml"), Loader=yaml.FullLoader)
+yaml_args = yaml.load(open("yaml_config/scifact_lstm.yaml"), Loader=yaml.FullLoader)
 
 
 class pl_model(pl.LightningModule):
@@ -21,13 +21,15 @@ class pl_model(pl.LightningModule):
         # get the model
         self.encoder = Encoder()
         self.decoder = Decoder()
-        self.embeds = nn.Embedding(config.vocab_size, config.emb_dim)
+
         # self.model = Model()
         self.vocab = vocab
-        self.start_id = self.vocab.__getitem__(data.START_DECODING)
-        self.end_id = self.vocab.__getitem__(data.STOP_DECODING)
-        self.pad_id = self.vocab.__getitem__(data.PAD_TOKEN)
-        self.unk_id = self.vocab.__getitem__(data.UNKNOWN_TOKEN)
+        print("vocab size", self.vocab._count)
+        self.embeds = nn.Embedding(self.vocab._count, config.emb_dim)
+        self.start_id = self.vocab.word2id(data.START_DECODING)
+        self.end_id = self.vocab.word2id(data.STOP_DECODING)
+        self.pad_id = self.vocab.word2id(data.PAD_TOKEN)
+        self.unk_id = self.vocab.word2id(data.UNKNOWN_TOKEN)
 
         self.lr = 0.001
         self.print_sents = True
@@ -82,7 +84,9 @@ class pl_model(pl.LightningModule):
                 final_dist, 1
             ).squeeze()  # Sample words from final distribution which can be used as input in next time step
             is_oov = (
-                x_t >= config.vocab_size
+                # x_t >= config.vocab_size
+                x_t
+                >= yaml_args["VOCAB_SIZE"]
             ).long()  # Mask indicating whether sampled word is OOV
             x_t = (1 - is_oov) * x_t.detach() + (
                 is_oov
@@ -145,12 +149,14 @@ class pl_model(pl.LightningModule):
 
     def print_original_predicted(self, decoded_sents, ref_sents, article_sents):
         filename = "test_debug" + ".txt"
-
+        if not os.path.exists(yaml_args["save_model_path"]):
+            os.makedirs(os.path.join(yaml_args["save_model_path"]))
         with open(os.path.join(yaml_args["save_model_path"], filename), "w") as f:
             for i in range(len(decoded_sents)):
                 f.write("article: " + article_sents[i] + "\n")
                 f.write("ref: " + ref_sents[i] + "\n")
                 f.write("dec: " + decoded_sents[i] + "\n\n")
+                f.flush()
 
     def validation_step(self, batch, batch_idx):
 
@@ -188,7 +194,7 @@ class pl_model(pl.LightningModule):
         )
 
         for i in range(len(pred_ids)):
-            decoded_words = data.outputids2words_new(
+            decoded_words = data.outputids2words(
                 pred_ids[i], self.vocab, batch.art_oovs[i]
             )
             if len(decoded_words) < 2:
@@ -249,7 +255,7 @@ class pl_model(pl.LightningModule):
         )
 
         for i in range(len(pred_ids)):
-            decoded_words = data.outputids2words_new(
+            decoded_words = data.outputids2words(
                 pred_ids[i], self.vocab, batch.art_oovs[i]
             )
             if len(decoded_words) < 2:

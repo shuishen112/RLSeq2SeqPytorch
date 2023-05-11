@@ -2,6 +2,9 @@ import numpy as np
 import torch as T
 from data_util import config, data
 from train_util import get_cuda
+import yaml
+
+yaml_args = yaml.load(open("yaml_config/scifact_lstm.yaml"), Loader=yaml.FullLoader)
 
 
 class Beam(object):
@@ -29,7 +32,9 @@ class Beam(object):
     def get_current_state(self):
         tokens = self.tokens[:, -1].clone()
         for i in range(len(tokens)):
-            if tokens[i].item() >= config.vocab_size:
+            # note that I changeed this, is may doesn't work for the previous version of train.py
+            # if tokens[i].item() >= config.vocab_size:
+            if tokens[i].item() >= yaml_args["VOCAB_SIZE"]:
                 tokens[i] = self.unk_id
         return tokens
 

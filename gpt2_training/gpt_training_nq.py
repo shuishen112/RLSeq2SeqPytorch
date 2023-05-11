@@ -97,7 +97,7 @@ class S2Sdataset(Dataset):
 
         df_merge = self.df_source["source"] + "<|pad|>" + self.df_target["target"]
 
-        for item in df_merge:
+        for item in tqdm(df_merge):
             # tokenize
             encodings_dict = tokenizer(
                 item, truncation=True, max_length=max_length, padding="max_length"
@@ -122,7 +122,6 @@ class S2Sdataset(Dataset):
 train_dataset = S2Sdataset(max_length=max_sequenge_length, data_type="train")
 valid_dataset = S2Sdataset(max_length=max_sequenge_length, data_type="val")
 # test_dataset = S2Sdataset(max_length=200, data_type="test")
-
 
 # class CustomTrainer(Trainer):
 # def evaluate(
@@ -223,7 +222,7 @@ trainer = Trainer(
     eval_dataset=valid_dataset,
 )
 
-# trainer.train()
+trainer.train()
 
 # %%
 # Test

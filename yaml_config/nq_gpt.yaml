@@ -7,5 +7,4 @@ target_length: 40
 tokenizer_savedir: "./nq_answer_models/tokenizer/"
 epoch: 100
 max_sequenge_length: 60
-save_model: "nq_title_results/checkpoint-53200"
- 
+save_model: "nq_title_results_tmp"
