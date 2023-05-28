@@ -78,6 +78,12 @@ We only report the score in our training environment.
 Note that I can not make sure the improvement is caused by RL, maybe we should train more time when we use MLE. 
 ## Pytorch lighting Version
 
+### LSTM
+- step 1: creat vocab：
+> python create_vocab.py
+- step 2: train with pytorch_lightning
+> python train_pl.py
+### GPT2
 
 ## References
 * [pytorch implementation of "Get To The Point: Summarization with Pointer-Generator Networks"](https://github.com/atulkum/pointer_summarizer)

@@ -11,7 +11,7 @@ from pyterrier.measures import *
 pt.init()
 # idf = pickle.load(open("notebook/idf.pickle", "rb"))
 # word_count = pickle.load(open("notebook/word_count.pickle", "rb"))
-yaml_args = yaml.load(open("yaml_config/nq_lstm.yaml"), Loader=yaml.FullLoader)
+# yaml_args = yaml.load(open("yaml_config/nq_lstm.yaml"), Loader=yaml.FullLoader)
 
 scorer = rouge_scorer.RougeScorer(["rouge1", "rouge2", "rougeL"], use_stemmer=True)
 
@@ -131,13 +131,14 @@ def get_retrieval_material_nq():
 
 
 class QueryReward:
-    def __init__(self, reward_name, reward_type="pre-retrieval"):
+    def __init__(self, reward_name, reward_type="pre-retrieval", dataset="scifact"):
         self.reward_name = reward_name
         self.reward_type = reward_type
+        self.dataset = dataset
         # if self.reward_type == "post-retrieval":
-        if yaml_args["dataset"] == "nq":
+        if self.dataset == "nq":
             self.bm25, self.train_qrel, self.val_qrel = get_retrieval_material_nq()
-        elif yaml_args["dataset"] == "scifact":
+        elif self.dataset == "scifact":
             self.bm25, self.train_qrel, self.val_qrel = get_retrieval_material_scifact()
         else:
             print("no dataset")

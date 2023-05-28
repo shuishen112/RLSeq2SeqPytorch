@@ -16,16 +16,21 @@ class ReinforcementModel(pl.LightningModule):
     def __init__(self, vocab) -> None:
         super().__init__()
 
+         # self.model = Model()
+        self.vocab = vocab
+        print("vocab size", self.vocab._count)
+
         # get the model
         self.encoder = Encoder()
-        self.decoder = Decoder()
-        self.embeds = nn.Embedding(config.vocab_size, config.emb_dim)
+        self.decoder = Decoder(self.vocab._count)
 
-        self.vocab = vocab
-        self.start_id = self.vocab.__getitem__(data.START_DECODING)
-        self.end_id = self.vocab.__getitem__(data.STOP_DECODING)
-        self.pad_id = self.vocab.__getitem__(data.PAD_TOKEN)
-        self.unk_id = self.vocab.__getitem__(data.UNKNOWN_TOKEN)
+       
+       
+        self.embeds = nn.Embedding(self.vocab._count, config.emb_dim)
+        self.start_id = self.vocab.word2id(data.START_DECODING)
+        self.end_id = self.vocab.word2id(data.STOP_DECODING)
+        self.pad_id = self.vocab.word2id(data.PAD_TOKEN)
+        self.unk_id = self.vocab.word2id(data.UNKNOWN_TOKEN)
 
         self.lr = 0.001
         self.print_sents = True
@@ -61,6 +66,7 @@ class ReinforcementModel(pl.LightningModule):
             x_t = (
                 use_gound_truth * dec_batch[:, t] + (1 - use_gound_truth) * x_t
             )  # Select decoder input based on use_ground_truth probabilities
+            view = dec_batch[:, t]
             x_t = self.embeds(x_t)
             final_dist, s_t, ct_e, sum_temporal_srcs, prev_s = self.decoder(
                 x_t,
@@ -84,7 +90,7 @@ class ReinforcementModel(pl.LightningModule):
             ).squeeze()  # Sample words from final distribution which can be used as input in next time step
 
             is_oov = (
-                x_t >= config.vocab_size
+                x_t >= self.vocab._count
             ).long()  # Mask indicating whether sampled word is OOV
             x_t = (1 - is_oov) * x_t.detach() + (
                 is_oov
@@ -159,7 +165,7 @@ class ReinforcementModel(pl.LightningModule):
             ] = 0  # If [STOP] is not encountered till previous time step and current word is [STOP], make mask = 0
             decoder_padding_mask.append(mask_t)
             is_oov = (
-                x_t >= config.vocab_size
+                x_t >= self.vocab._count
             ).long()  # Mask indicating whether sampled word is OOV
             x_t = (1 - is_oov) * x_t + (
                 is_oov
@@ -182,7 +188,7 @@ class ReinforcementModel(pl.LightningModule):
         for i in range(len(enc_out)):
             id_list = inds[i].cpu().numpy()
             oovs = article_oovs[i]
-            S = data.outputids2words_new(
+            S = data.outputids2words(
                 id_list, self.vocab, oovs
             )  # Generate sentence corresponding to sampled words
             try:
@@ -340,7 +346,7 @@ class ReinforcementModel(pl.LightningModule):
         )
 
         for i in range(len(pred_ids)):
-            decoded_words = data.outputids2words_new(
+            decoded_words = data.outputids2words(
                 pred_ids[i], self.vocab, batch.art_oovs[i]
             )
             if len(decoded_words) < 2:
@@ -406,7 +412,7 @@ class ReinforcementModel(pl.LightningModule):
         )
 
         for i in range(len(pred_ids)):
-            decoded_words = data.outputids2words_new(
+            decoded_words = data.outputids2words(
                 pred_ids[i], self.vocab, batch.art_oovs[i]
             )
             if len(decoded_words) < 2:

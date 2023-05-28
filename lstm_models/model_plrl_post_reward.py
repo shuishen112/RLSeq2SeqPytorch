@@ -14,26 +14,29 @@ from query_predictor import QueryReward
 import numpy as np
 import yaml
 
-yaml_args = yaml.load(open("yaml_config/nq_lstm.yaml"), Loader=yaml.FullLoader)
-
-reward_evaluation = yaml_args["reward"]
-qw = QueryReward(reward_evaluation, reward_type="post-retrieval")
 
 
 class ReinforcementPostModel(pl.LightningModule):
-    def __init__(self, vocab) -> None:
+    def __init__(self, vocab, args) -> None:
         super().__init__()
+
+        self.vocab = vocab
+        print("vocab size", self.vocab._count)
+        self.args = args
 
         # get the model
         self.encoder = Encoder()
-        self.decoder = Decoder()
-        self.embeds = nn.Embedding(config.vocab_size, config.emb_dim)
+        self.decoder = Decoder(self.vocab._count)
+        reward_evaluation = self.args["reward"]
+        self.qw = QueryReward(reward_evaluation, reward_type="post-retrieval", dataset = "scifact")
 
-        self.vocab = vocab
-        self.start_id = self.vocab.__getitem__(data.START_DECODING)
-        self.end_id = self.vocab.__getitem__(data.STOP_DECODING)
-        self.pad_id = self.vocab.__getitem__(data.PAD_TOKEN)
-        self.unk_id = self.vocab.__getitem__(data.UNKNOWN_TOKEN)
+       
+        self.embeds = nn.Embedding(self.vocab._count, config.emb_dim)
+        self.start_id = self.vocab.word2id(data.START_DECODING)
+        self.end_id = self.vocab.word2id(data.STOP_DECODING)
+        self.pad_id = self.vocab.word2id(data.PAD_TOKEN)
+        self.unk_id = self.vocab.word2id(data.UNKNOWN_TOKEN)
+
 
         self.lr = 0.001
         self.print_sents = True
@@ -104,7 +107,7 @@ class ReinforcementPostModel(pl.LightningModule):
             ] = 0  # If [STOP] is not encountered till previous time step and current word is [STOP], make mask = 0
             decoder_padding_mask.append(mask_t)
             is_oov = (
-                x_t >= config.vocab_size
+                x_t >= self.vocab._count
             ).long()  # Mask indicating whether sampled word is OOV
             x_t = (1 - is_oov) * x_t + (
                 is_oov
@@ -127,7 +130,7 @@ class ReinforcementPostModel(pl.LightningModule):
         for i in range(len(enc_out)):
             id_list = inds[i].cpu().numpy()
             oovs = article_oovs[i]
-            S = data.outputids2words_new(
+            S = data.outputids2words(
                 id_list, self.vocab, oovs
             )  # Generate sentence corresponding to sampled words
             try:
@@ -145,12 +148,12 @@ class ReinforcementPostModel(pl.LightningModule):
         return decoded_strs, log_probs
 
     def write_to_file(self, decoded, max, original, sample_r, baseline_r, iter):
-        with open("temp.txt", "w") as f:
+        with open(os.path.join(self.args["save_model_path"],f"{self.args['reward']}.txt"), "w") as f:
             f.write("iter:" + str(iter) + "\n")
             for i in range(len(original)):
-                f.write("dec: " + decoded[i] + "\n")
-                f.write("max: " + max[i] + "\n")
-                f.write("org: " + original[i] + "\n")
+                f.write("new_querie: " + decoded[i] + "\n")
+                f.write("greedy_search: " + max[i] + "\n")
+                f.write("original_query: " + original[i] + "\n")
                 f.write(
                     "Sample_R: %.4f, Baseline_R: %.4f\n\n"
                     % (sample_r[i].item(), baseline_r[i].item())
@@ -205,7 +208,7 @@ class ReinforcementPostModel(pl.LightningModule):
                 generated_terms = " ".join(sample_sents[i].split()[:12])
                 new_querys.append(original + " " + generated_terms)
 
-            sample_reward = qw.get_reward_score(
+            sample_reward = self.qw.get_reward_score(
                 new_querys,
                 None,
                 qids=qids,
@@ -215,7 +218,7 @@ class ReinforcementPostModel(pl.LightningModule):
 
             sample_reward = get_cuda(T.FloatTensor(sample_reward))
 
-            baseline_reward = qw.get_reward_score(
+            baseline_reward = self.qw.get_reward_score(
                 original_querys,
                 None,
                 qids=qids,
@@ -244,14 +247,14 @@ class ReinforcementPostModel(pl.LightningModule):
             self.rl_loss = T.mean(rl_loss)
 
             batch_reward = T.mean(sample_reward).item()
-            print("train_reward", batch_reward)
+            # print("train_reward", batch_reward)
 
         return self.rl_loss
 
     def print_original_predicted(self, decoded_sents, ref_sents, article_sents):
         filename = "test_debug" + ".txt"
 
-        with open(os.path.join(yaml_args["data_dir"], filename), "w") as f:
+        with open(os.path.join(self.args["save_model_path"], filename), "w") as f:
             for i in range(len(decoded_sents)):
                 f.write("article: " + article_sents[i] + "\n")
                 f.write("ref: " + ref_sents[i] + "\n")
@@ -292,7 +295,7 @@ class ReinforcementPostModel(pl.LightningModule):
         )
 
         for i in range(len(pred_ids)):
-            decoded_words = data.outputids2words_new(
+            decoded_words = data.outputids2words(
                 pred_ids[i], self.vocab, batch.art_oovs[i]
             )
             if len(decoded_words) < 2:
@@ -307,7 +310,7 @@ class ReinforcementPostModel(pl.LightningModule):
             original_querys.append(original_query)
 
         qids = batch.qids
-        sample_reward = qw.get_reward_score(
+        sample_reward = self.qw.get_reward_score(
             new_querys,
             None,
             qids=qids,
@@ -318,7 +321,7 @@ class ReinforcementPostModel(pl.LightningModule):
         sample_reward = get_cuda(T.FloatTensor(sample_reward))
         print("get sample reward", sample_reward)
 
-        baseline_reward = qw.get_reward_score(
+        baseline_reward = self.qw.get_reward_score(
             original_querys,
             None,
             qids=qids,
@@ -327,16 +330,6 @@ class ReinforcementPostModel(pl.LightningModule):
         )
 
         baseline_reward = get_cuda(T.FloatTensor(baseline_reward))
-
-        if self.print_sents:
-            self.write_to_file(
-                new_querys,
-                original_querys,
-                batch.original_abstracts,
-                sample_reward,
-                baseline_reward,
-                "0",
-            )
 
         # self.log("rouge_l", rouge_l, on_step=False, prog_bar=True, logger=True)
         batch_reward = T.mean(sample_reward)
@@ -382,7 +375,7 @@ class ReinforcementPostModel(pl.LightningModule):
         )
 
         for i in range(len(pred_ids)):
-            decoded_words = data.outputids2words_new(
+            decoded_words = data.outputids2words(
                 pred_ids[i], self.vocab, batch.art_oovs[i]
             )
             if len(decoded_words) < 2:
@@ -408,7 +401,7 @@ class ReinforcementPostModel(pl.LightningModule):
         # pred_l = []
         fout = open(
             "{}/{}_rl_{}.txt".format(
-                yaml_args["data_dir"], yaml_args["dataset"], yaml_args["reward"]
+                self.args["data_dir"], self.args["dataset"], self.args["reward"]
             ),
             "w",
         )

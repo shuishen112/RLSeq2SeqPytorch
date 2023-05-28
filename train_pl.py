@@ -4,20 +4,19 @@ from pytorch_lightning import Trainer
 from lstm_models.model_pl import pl_model
 from lstm_models.data_loader_pl import S2SDataModule
 
-from lstm_models.model_plrl import ReinforcementModel
+# from lstm_models.model_plrl import ReinforcementModel
 
-# from lstm_models.model_plrl_post_reward import ReinforcementPostModel
+from lstm_models.model_plrl_post_reward import ReinforcementPostModel
 from pathlib import Path
 from pytorch_lightning.loggers import WandbLogger
 
-from query_predictor import QueryReward
 import yaml
 
 
-yaml_args = yaml.load(open("yaml_config/scifact_lstm.yaml"), Loader=yaml.FullLoader)
+yaml_args = yaml.load(open("yaml_config/msmarco_lstm.yaml"), Loader=yaml.FullLoader)
 # wandb_logger = WandbLogger(
-#     project="SIGIR2023",
-#     name="lstm-nq-answer",
+#     project="CIKM2023",
+#     name="lstm-scifact",
 #     # config=args,
 # )
 
@@ -27,9 +26,8 @@ datamodule = S2SDataModule(
     yaml_args=yaml_args,
 )
 
-model = pl_model(datamodule.vocab)
-# model = ReinforcementModel(datamodule.vocab)
-# model = ReinforcementPostModel(datamodule.vocab)
+model = pl_model(datamodule.vocab, yaml_args)
+# model = ReinforcementPostModel(datamodule.vocab,yaml_args)
 
 filename = yaml_args["filename"]
 ckpt_path = yaml_args["ckpt_path"]

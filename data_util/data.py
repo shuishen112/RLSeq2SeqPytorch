@@ -132,34 +132,34 @@ def article2ids(article_words, vocab):
     return ids, oovs
 
 
-def article2ids_new(article_words, vocab):
-    """new article2ids
-    vocab is from torchtexts
-    Args:
-        article_words (_type_): _description_
-        vocab (_type_): _description_
+# def article2ids_new(article_words, vocab):
+#     """new article2ids
+#     vocab is from torchtexts
+#     Args:
+#         article_words (_type_): _description_
+#         vocab (_type_): _description_
 
-    Returns:
-        _type_: _description_
-    """
-    ids = []
-    oovs = []
-    unk_id = vocab.__getitem__(UNKNOWN_TOKEN)
-    for w in article_words:
-        i = vocab.__getitem__(w)
-        if i == unk_id:  # If w is OOV
-            if w not in article_words:  # Add to list of OOVs
-                oovs.append(w)
-            # oov_num = oovs.index(
-            #     w
-            # )  # This is 0 for the first article OOV, 1 for the second article OOV...
-            ids.append(
-                # vocab.__len__() + oov_num
-                i
-            )  # This is e.g. 50000 for the first article OOV, 50001 for the second...
-        else:
-            ids.append(i)
-    return ids, oovs
+#     Returns:
+#         _type_: _description_
+#     """
+#     ids = []
+#     oovs = []
+#     unk_id = vocab.__getitem__(UNKNOWN_TOKEN)
+#     for w in article_words:
+#         i = vocab.__getitem__(w)
+#         if i == unk_id:  # If w is OOV
+#             if w not in article_words:  # Add to list of OOVs
+#                 oovs.append(w)
+#             # oov_num = oovs.index(
+#             #     w
+#             # )  # This is 0 for the first article OOV, 1 for the second article OOV...
+#             ids.append(
+#                 # vocab.__len__() + oov_num
+#                 i
+#             )  # This is e.g. 50000 for the first article OOV, 50001 for the second...
+#         else:
+#             ids.append(i)
+#     return ids, oovs
 
 
 def abstract2ids(abstract_words, vocab, article_oovs):
@@ -211,10 +211,7 @@ def outputids2words(id_list, vocab, article_oovs):
             try:
                 w = article_oovs[article_oov_idx]
             except ValueError as e:  # i doesn't correspond to an article oov
-                raise ValueError(
-                    "Error: model produced word ID %i which corresponds to article OOV %i but this example only has %i article OOVs"
-                    % (i, article_oov_idx, len(article_oovs))
-                )
+                raise ValueError(f"Error: model produced word ID {i} which corresponds to article OOV {article_oov_idx} but this example only has {len(article_oovs)} article OOVs")
         words.append(w)
     return words
 

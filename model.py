@@ -136,7 +136,7 @@ class decoder_attention(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self):
+    def __init__(self,vocab_size):
         super(Decoder, self).__init__()
         self.enc_attention = encoder_attention()
         self.dec_attention = decoder_attention()
@@ -149,7 +149,8 @@ class Decoder(nn.Module):
 
         #p_vocab
         self.V = nn.Linear(config.hidden_dim*4, config.hidden_dim)
-        self.V1 = nn.Linear(config.hidden_dim, config.vocab_size)
+        # changed the vocab_size to yaml_config_size
+        self.V1 = nn.Linear(config.hidden_dim, vocab_size)
         init_linear_wt(self.V1)
 
     def forward(self, x_t, s_t, enc_out, enc_padding_mask, ct_e, extra_zeros, enc_batch_extend_vocab, sum_temporal_srcs, prev_s):

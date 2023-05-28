@@ -126,23 +126,23 @@ class S2SDataset(Dataset):
             )
         elif train_type == "rl":
 
-            # self.df_article = pd.read_csv(
-            #     f"{data_path}/{type}.source_rl", sep="\t", names=["qid", "article"]
-            # )
-            # self.df_abstract = pd.read_csv(
-            #     f"{data_path}/{type}.target_rl", sep="\t", names=["qid", "abstract"]
-            # )
             self.df_article = pd.read_csv(
-                f"{data_path}/{type}.source",
-                sep=",",
+                f"{data_path}/{type}.source_rl", sep="\t", names=["qid", "article"]
             )
-            self.df_article = self.df_article.rename(columns={"query": "article"})
-
             self.df_abstract = pd.read_csv(
-                f"{data_path}/{type}.target",
-                sep=",",
+                f"{data_path}/{type}.target_rl", sep="\t", names=["qid", "abstract"]
             )
-            self.df_abstract = self.df_abstract.rename(columns={"query": "abstract"})
+            # self.df_article = pd.read_csv(
+            #     f"{data_path}/{type}.source",
+            #     sep=",",
+            # )
+            # self.df_article = self.df_article.rename(columns={"query": "article"})
+
+            # self.df_abstract = pd.read_csv(
+            #     f"{data_path}/{type}.target",
+            #     sep=",",
+            # )
+            # self.df_abstract = self.df_abstract.rename(columns={"query": "abstract"})
 
         self.vocab = vocab
 
@@ -255,12 +255,12 @@ class S2SDataModule(pl.LightningDataModule):
     ) -> None:
         super().__init__()
 
-        df_article = pd.read_csv(
-            f"{data_dir}/train.source", sep="\t", names=["article"]
-        )
-        df_abstract = pd.read_csv(
-            f"{data_dir}/train.target", sep="\t", names=["abstract"]
-        )
+        # df_article = pd.read_csv(
+        #     f"{data_dir}/train.source", sep="\t", names=["article"]
+        # )
+        # df_abstract = pd.read_csv(
+        #     f"{data_dir}/train.target", sep="\t", names=["abstract"]
+        # )
 
         self.batch_size = config.batch_size
         # PAD_TOKEN = "[PAD]"  # This has a vocab id, which is used to pad the encoder input, decoder input and target sequence
