@@ -11,7 +11,7 @@ from pyterrier.measures import *
 pt.init()
 # idf = pickle.load(open("notebook/idf.pickle", "rb"))
 # word_count = pickle.load(open("notebook/word_count.pickle", "rb"))
-# yaml_args = yaml.load(open("yaml_config/nq_lstm.yaml"), Loader=yaml.FullLoader)
+# yaml_args = yaml.load(open("yaml_config/scifact_config.yaml"), Loader=yaml.FullLoader)
 
 scorer = rouge_scorer.RougeScorer(["rouge1", "rouge2", "rougeL"], use_stemmer=True)
 
@@ -99,6 +99,28 @@ def get_retrieval_material_scifact():
 
     return bm25, train_qrel, train_qrel
 
+def get_retrieval_material_msmarco():
+    index = pt.IndexFactory.of(
+        "./indices/beir_msmarco"
+    )
+    print(index.getCollectionStatistics().toString())   
+    bm25 = pt.BatchRetrieve(index, wmodel="BM25").parallel(16)
+    dataset = pt.datasets.get_dataset("trec-deep-learning-passages") 
+    train_qrel = dataset.get_qrels("train")
+    dev_qrel = dataset.get_qrels("dev.small")
+
+    result = pt.Experiment(
+        [bm25],
+        dataset.get_topics("dev.small")[:10],
+        dataset.get_qrels("dev.small"),
+        ["recall_50"],
+        verbose=True,
+    )
+    print(result)
+    return bm25, train_qrel, dev_qrel
+
+    
+
 
 def get_retrieval_material_nq():
     #
@@ -109,14 +131,14 @@ def get_retrieval_material_nq():
 
     # dataset.get_topics("text").to_csv("datasets/natural-questions/val.source", index=None)
     print(index.getCollectionStatistics().toString())
-    querys = pd.read_csv("data/natural-questions/train.source", dtype={"qid": "str"})
+    querys = pd.read_csv("dataset/natural-questions/train.source", dtype={"qid": "str"})
     querys = querys.astype({"qid": "str"})
     train_qrels = pd.read_csv(
-        "data/natural-questions/train_qrels.txt",
+        "dataset/natural-questions/train_qrels.txt",
         dtype={"qid": "str", "label": "int64", "docno": "str"},
     )
     # train_qrels = train_qrels.astype({"qid": "str", "label": "int64", "docno": "str"})
-    dev_qrels = pd.read_csv("data/natural-questions/dev_qrels.txt")
+    dev_qrels = pd.read_csv("dataset/natural-questions/dev_qrels.txt")
 
     # result = pt.Experiment(
     #     [bm25],
@@ -134,12 +156,13 @@ class QueryReward:
     def __init__(self, reward_name, reward_type="pre-retrieval", dataset="scifact"):
         self.reward_name = reward_name
         self.reward_type = reward_type
-        self.dataset = dataset
         # if self.reward_type == "post-retrieval":
-        if self.dataset == "nq":
+        if dataset == "nq":
             self.bm25, self.train_qrel, self.val_qrel = get_retrieval_material_nq()
-        elif self.dataset == "scifact":
+        elif dataset == "scifact":
             self.bm25, self.train_qrel, self.val_qrel = get_retrieval_material_scifact()
+        elif dataset == "msmarco":
+            self.bm25, self.train_qrel, self.val_qrel = get_retrieval_material_msmarco()
         else:
             print("no dataset")
 

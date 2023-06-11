@@ -14,7 +14,7 @@ beam_size = 2
 min_dec_steps = 3
 # vocab_size = 50000  # answer
 # vocab_size = 100970 # title
-vocab_size = 102672  # sentence
+# vocab_size = 102672  # sentence
 
 lr = 0.001
 rand_unif_init_mag = 0.02

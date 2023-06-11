@@ -85,6 +85,31 @@ Note that I can not make sure the improvement is caused by RL, maybe we should t
 > python train_pl.py
 ### GPT2
 
+### Test GAR
+
+- Natural Question
+
+> python gpt2_training/gpt_training_nq.py 
+
+Then process the generated terms from gpt2
+
+> python processed_result_for_nq.py
+
+evaluate the result.
+
+> sh natural_question.sh
+
+- MSMARCO dataset
+
+> python gpt2_training/gpt_test_pl.py
+
+Then processed the results and evaluate
+
+msmarco_passage.ipynb
+
+- SCIFACT
+
+notebook/scifact.ipynb
 ## References
 * [pytorch implementation of "Get To The Point: Summarization with Pointer-Generator Networks"](https://github.com/atulkum/pointer_summarizer)
 * [https://github.com/rohithreddy024/Text-Summarizer-Pytorch](https://github.com/rohithreddy024/Text-Summarizer-Pytorch)

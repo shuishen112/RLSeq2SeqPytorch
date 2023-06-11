@@ -13,7 +13,7 @@ from pytorch_lightning.loggers import WandbLogger
 import yaml
 
 
-yaml_args = yaml.load(open("yaml_config/msmarco_lstm.yaml"), Loader=yaml.FullLoader)
+yaml_args = yaml.load(open("yaml_config/msmarco_lstm_rl.yaml"), Loader=yaml.FullLoader)
 # wandb_logger = WandbLogger(
 #     project="CIKM2023",
 #     name="lstm-scifact",
@@ -26,8 +26,8 @@ datamodule = S2SDataModule(
     yaml_args=yaml_args,
 )
 
-model = pl_model(datamodule.vocab, yaml_args)
-# model = ReinforcementPostModel(datamodule.vocab,yaml_args)
+# model = pl_model(datamodule.vocab, yaml_args)
+model = ReinforcementPostModel(datamodule.vocab,yaml_args)
 
 filename = yaml_args["filename"]
 ckpt_path = yaml_args["ckpt_path"]
@@ -52,9 +52,11 @@ trainer = Trainer(
     resume_from_checkpoint=ckpt_path,
     logger=None,
     # fast_dev_run=True,
-    # limit_train_batches=1,
+    limit_train_batches=1,
     # limit_val_batches=1,
+
 )
+
 trainer.fit(model, datamodule, ckpt_path=ckpt_path)
 trainer.test(
     model,

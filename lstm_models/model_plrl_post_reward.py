@@ -28,7 +28,7 @@ class ReinforcementPostModel(pl.LightningModule):
         self.encoder = Encoder()
         self.decoder = Decoder(self.vocab._count)
         reward_evaluation = self.args["reward"]
-        self.qw = QueryReward(reward_evaluation, reward_type="post-retrieval", dataset = "scifact")
+        self.qw = QueryReward(reward_evaluation, reward_type="post-retrieval", dataset = self.args["dataset"])
 
        
         self.embeds = nn.Embedding(self.vocab._count, config.emb_dim)
@@ -148,6 +148,8 @@ class ReinforcementPostModel(pl.LightningModule):
         return decoded_strs, log_probs
 
     def write_to_file(self, decoded, max, original, sample_r, baseline_r, iter):
+        if not os.path.exists(self.args["save_model_path"]):
+            os.makedirs(self.args["save_model_path"])
         with open(os.path.join(self.args["save_model_path"],f"{self.args['reward']}.txt"), "w") as f:
             f.write("iter:" + str(iter) + "\n")
             for i in range(len(original)):
@@ -315,7 +317,7 @@ class ReinforcementPostModel(pl.LightningModule):
             None,
             qids=qids,
             source_text=None,
-            data_type="train",
+            data_type="val",
         )
 
         sample_reward = get_cuda(T.FloatTensor(sample_reward))
@@ -326,20 +328,21 @@ class ReinforcementPostModel(pl.LightningModule):
             None,
             qids=qids,
             source_text=None,
-            data_type="train",
+            data_type="val",
         )
 
         baseline_reward = get_cuda(T.FloatTensor(baseline_reward))
 
         # self.log("rouge_l", rouge_l, on_step=False, prog_bar=True, logger=True)
         batch_reward = T.mean(sample_reward)
+        self.log("val_reward", batch_reward, on_epoch=True, prog_bar=True, logger=True)
         # print("batch_reward:", "%.4f" % batch_reward)
         return {"batch_reward": batch_reward}
 
-    def validation_epoch_end(self, outputs):
-        avg_reward = torch.stack([x["batch_reward"] for x in outputs]).mean()
-        print("val_reward:", "%.4f" % avg_reward)
-        self.log("val_reward", avg_reward, on_epoch=True)
+    # def validation_epoch_end(self, outputs):
+    #     avg_reward = torch.stack([x["batch_reward"] for x in outputs]).mean()
+    #     print("val_reward:", "%.4f" % avg_reward)
+       
 
     def test_step(self, batch, batch_idx):
 
