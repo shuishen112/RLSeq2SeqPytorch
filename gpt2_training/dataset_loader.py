@@ -15,25 +15,32 @@ def trunction_target(row, target_length=20):
 
 
 class S2Sdataset(Dataset):
-    def __init__(self, args, tokenizer=None, max_length=20, data_type="train"):
+    def __init__(self, args, tokenizer=None, data_type="train"):
         self.input_ids = []
         self.attn_masks = []
 
-        self.df_source = pd.read_csv(
-            f"{args.data_path}/{data_type}.source", sep="\t", names=["source"]
+        assert tokenizer is not None
+
+        source_items = open(f"{args.data_path}/{data_type}.source", "r").readlines()
+        self.df_source = pd.DataFrame(source_items, columns=["source"])
+
+        target_items = open(f"{args.data_path}/{data_type}.target", "r").readlines()
+        self.df_target = pd.DataFrame(target_items, columns=["target"])
+        self.df_source["source"] = self.df_source["source"].apply(
+            trunction_query, input_length=args.input_length
         )
-        self.df_target = pd.read_csv(
-            f"{args.data_path}/{data_type}.target", sep="\t", names=["target"]
+        self.df_target["target"] = self.df_target["target"].apply(
+            trunction_target, target_length=args.target_length
         )
-        self.df_source["source"] = self.df_source["source"].apply(trunction_query)
-        self.df_target["target"] = self.df_target["target"].apply(trunction_target)
 
         df_merge = self.df_source["source"] + "<|pad|>" + self.df_target["target"]
-
         for item in tqdm(df_merge):
             # tokenize
             encodings_dict = tokenizer(
-                item, truncation=True, max_length=max_length, padding="max_length"
+                item,
+                truncation=True,
+                max_length=args.max_sequenge_length,
+                padding="max_length",
             )
             self.input_ids.append(torch.tensor(encodings_dict["input_ids"]))
             self.attn_masks.append(torch.tensor(encodings_dict["attention_mask"]))

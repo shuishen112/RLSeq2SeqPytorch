@@ -21,6 +21,13 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--checkpoint_path",
+    help="the path of the checkpoint",
+    type=str,
+    default=None,
+)
+
+parser.add_argument(
     "--output_dir",
     help="the path of the output",
     type=str,
@@ -42,6 +49,20 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--predict_length",
+    help="the length of the predict",
+    type=int,
+    default=20,
+)
+
+parser.add_argument(
+    "--inference_input",
+    help="the inference input",
+    type=str,
+    default="scifact/test.source",
+)
+
+parser.add_argument(
     "--epoch",
     help="the epoch of the training",
     type=int,
@@ -54,3 +75,26 @@ parser.add_argument(
     type=int,
     default=40,
 )
+
+
+parser.add_argument(
+    "--logging_steps",
+    help="the logging steps of the training",
+    type=int,
+    default=100,
+)
+
+parser.add_argument(
+    "--train",
+    help="train the model",
+    action="store_true",
+)
+
+parser.add_argument(
+    "--predict",
+    help="predict the model",
+    action="store_true",
+)
+
+
+config = parser.parse_args()
