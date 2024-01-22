@@ -33,13 +33,14 @@ class S2Sdataset(Dataset):
             trunction_target, target_length=args.target_length
         )
 
-        df_merge = self.df_source["source"] + "<|pad|>" + self.df_target["target"]
-        for item in tqdm(df_merge):
+        df_merge = self.df_source["source"] + "<|sep|>" + self.df_target["target"]
+
+        for item in df_merge:
             # tokenize
             encodings_dict = tokenizer(
                 item,
                 truncation=True,
-                max_length=args.max_sequenge_length,
+                max_length=args.max_sequence_length,
                 padding="max_length",
             )
             self.input_ids.append(torch.tensor(encodings_dict["input_ids"]))

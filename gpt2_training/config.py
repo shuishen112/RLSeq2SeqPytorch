@@ -70,7 +70,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--max_sequenge_length",
+    "--max_sequence_length",
     help="the max length of the sequence",
     type=int,
     default=40,
